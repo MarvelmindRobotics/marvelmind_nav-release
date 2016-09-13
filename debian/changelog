@@ -1,0 +1,14 @@
+ros-kinetic-marvelmind-nav (1.0.4-0jessie) jessie; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Sep 2016 21:00:00 -0000
+
+ros-kinetic-marvelmind-nav (1.0.3-0jessie) jessie; urgency=high
+
+  * initial commit
+  * Contributors: smoker77
+
+ -- Marvelmind Robotics <marvelmind@gmail.com>  Mon, 12 Sep 2016 21:00:00 -0000
+
+
