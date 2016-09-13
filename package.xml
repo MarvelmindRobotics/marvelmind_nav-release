@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package>
   <name>marvelmind_nav</name>
-  <version>1.0.3</version>
+  <version>1.0.4</version>
   <description>Marvelmind local navigation system</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="marvelmind@gmail.com">Marvelmind Robotics</maintainer>
+  <!-- <maintainer email="marvelmind@gmail.com">Marvelmind Robotics</maintainer> -->
   <maintainer email="smoker77@gmail.com">smoker77</maintainer>
 
 
@@ -46,9 +46,11 @@
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>visualization_msgs</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
