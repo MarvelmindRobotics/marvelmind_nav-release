@@ -363,6 +363,7 @@ struct MarvelmindHedge * createMarvelmindHedge ()
         hedge->receiveDataCallback=NULL;
         hedge->lastValuesCount_=0;
         hedge->haveNewValues_=false;
+        hedge->terminationRequired= false;
 #ifdef WIN32
         InitializeCriticalSection(&hedge->lock_);
 #else
