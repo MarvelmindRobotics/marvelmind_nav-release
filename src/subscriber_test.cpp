@@ -58,10 +58,10 @@ void showRvizObject(float x, float y, float z)
 
 void hedgePosCallback(const marvelmind_nav::hedge_pos& hedge_pos_msg)
 {
-  ROS_INFO("Hedgehog data: %ld, X=%.3f  Y= %.3f  Z=%.3f  flags=%d", 	
-				hedge_pos_msg.timestamp_ms, 
-				hedge_pos_msg.x_m, hedge_pos_msg.y_m, hedge_pos_msg.z_m,  
-				hedge_pos_msg.flags);
+  ROS_INFO("Hedgehog data: %d, X=%.3f  Y= %.3f  Z=%.3f  flags=%d", 	
+				(int) hedge_pos_msg.timestamp_ms, 
+				(float) hedge_pos_msg.x_m, (float) hedge_pos_msg.y_m, (float) hedge_pos_msg.z_m,  
+				(int) hedge_pos_msg.flags);
 				
   if ((hedge_pos_msg.flags&(1<<0))==0)
     {				
