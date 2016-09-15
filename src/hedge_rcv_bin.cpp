@@ -102,11 +102,11 @@ int main(int argc, char **argv)
 	  
     if (hedgeReceiveCheck())
      {// hedgehog data received
-		ROS_INFO("%ld, %d, X=%.3f  Y= %.3f  Z=%.3f   flags=%d", 	
-				hedge_pos_msg.timestamp_ms, 
-				hedge_pos_msg.timestamp_ms - hedge_timestamp_prev,
-				hedge_pos_msg.x_m, hedge_pos_msg.y_m, hedge_pos_msg.z_m,  
-				hedge_pos_msg.flags);
+		ROS_INFO("%d, %d, X=%.3f  Y= %.3f  Z=%.3f   flags=%d", 	
+				(int) hedge_pos_msg.timestamp_ms, 
+				(int) (hedge_pos_msg.timestamp_ms - hedge_timestamp_prev),
+				(float) hedge_pos_msg.x_m, (float) hedge_pos_msg.y_m, (float) hedge_pos_msg.z_m,  
+				(int) hedge_pos_msg.flags);
         hedge_pos_publisher.publish(hedge_pos_msg);
         
         hedge_timestamp_prev= hedge_pos_msg.timestamp_ms;
