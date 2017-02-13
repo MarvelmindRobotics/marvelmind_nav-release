@@ -1,0 +1,12 @@
+Source: ros-hydro-marvelmind-nav
+Section: misc
+Priority: extra
+Maintainer: smoker77 <smoker77@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), ros-hydro-catkin, ros-hydro-message-generation, ros-hydro-roscpp, ros-hydro-rospy, ros-hydro-std-msgs, ros-hydro-visualization-msgs
+Homepage: http://marvelmind.com
+Standards-Version: 3.9.2
+
+Package: ros-hydro-marvelmind-nav
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-hydro-message-runtime, ros-hydro-roscpp, ros-hydro-rospy, ros-hydro-std-msgs, ros-hydro-visualization-msgs
+Description: Marvelmind local navigation system
