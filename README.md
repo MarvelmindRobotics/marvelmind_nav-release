@@ -1,3 +1,26 @@
+## marvelmind_nav (kinetic) - 1.0.8-0
+
+The packages in the `marvelmind_nav` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release marvelmind_nav --track kinetic --rosdistro kinetic` on `Thu, 15 Mar 2018 14:09:29 -0000`
+
+The `marvelmind_nav` package was released.
+
+Version of package(s) in repository `marvelmind_nav`:
+
+- upstream repository: https://bitbucket.org/marvelmind_robotics/ros_marvelmind_package
+- release repository: https://github.com/MarvelmindRobotics/marvelmind_nav-release.git
+- rosdistro version: `1.0.7-2`
+- old version: `1.0.7-2`
+- new version: `1.0.8-0`
+
+Versions of tools used:
+
+- bloom version: `0.5.22`
+- catkin_pkg version: `0.2.10`
+- rosdep version: `0.11.5`
+- rosdistro version: `0.4.7`
+- vcstools version: `0.1.39`
+
+
 ## marvelmind_nav (indigo) - 1.0.8-0
 
 The packages in the `marvelmind_nav` repository were released into the `indigo` distro by running `/usr/bin/bloom-release marvelmind_nav --track indigo --rosdistro indigo` on `Thu, 15 Mar 2018 13:43:24 -0000`
