@@ -501,12 +501,12 @@ static void process_imu_fusion_datagram(struct MarvelmindHedge * hedge, uint8_t 
 
 static void process_raw_distances_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
 {uint8_t *dataBuf= &buffer[5];
- uint8_t ofs;	
+ uint8_t ofs, i;	
 	
     hedge->rawDistances.address_hedge= dataBuf[0];
     
     ofs= 1;
-    for(uint8_t i=0;i<4;i++)
+    for(i=0;i<4;i++)
     {
 	   hedge->rawDistances.distances[i].address_beacon= dataBuf[ofs+0];	
 	   hedge->rawDistances.distances[i].distance= get_uint32(&dataBuf[ofs+1]);
