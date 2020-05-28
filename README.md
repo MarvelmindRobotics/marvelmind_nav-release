@@ -1,3 +1,26 @@
+## marvelmind_nav (melodic) - 1.0.9-1
+
+The packages in the `marvelmind_nav` repository were released into the `melodic` distro by running `/usr/bin/bloom-release marvelmind_nav --rosdistro melodic` on `Thu, 28 May 2020 12:01:40 -0000`
+
+The `marvelmind_nav` package was released.
+
+Version of package(s) in repository `marvelmind_nav`:
+
+- upstream repository: https://bitbucket.org/marvelmind_robotics/ros_marvelmind_package
+- release repository: unknown
+- rosdistro version: `null`
+- old version: `null`
+- new version: `1.0.9-1`
+
+Versions of tools used:
+
+- bloom version: `0.9.7`
+- catkin_pkg version: `0.4.13`
+- rosdep version: `0.15.2`
+- rosdistro version: `0.8.2`
+- vcstools version: `0.1.42`
+
+
 ## marvelmind_nav (kinetic) - 1.0.8-0
 
 The packages in the `marvelmind_nav` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release marvelmind_nav --track kinetic --rosdistro kinetic` on `Thu, 15 Mar 2018 14:09:29 -0000`
