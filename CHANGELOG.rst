@@ -1,5 +1,13 @@
 Changelog for package marvelmind_nav
 
+1.0.10 (2020-05-28)
+-------------------
+* upd
+* Contributors: smoker77
+
+* upd
+* Contributors: smoker77
+
 1.0.9 (2020-05-28)
 ------------------
 * Merge branch 'master' of https://smoker77@bitbucket.org/marvelmind_robotics/ros_marvelmind_package.git
