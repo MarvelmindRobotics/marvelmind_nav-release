@@ -57,6 +57,9 @@ add_message_files(
   hedge_imu_raw.msg
   hedge_imu_fusion.msg
   beacon_distance.msg
+  hedge_telemetry.msg
+  hedge_quality.msg
+  marvelmind_waypoint.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -178,11 +181,11 @@ target_link_libraries(subscriber_test
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS marvelmind_nav marvelmind_nav_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(TARGETS hedge_rcv_bin subscriber_test
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark cpp header files for installation
 #install(DIRECTORY include/${PROJECT_NAME}/

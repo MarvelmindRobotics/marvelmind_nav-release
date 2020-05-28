@@ -205,7 +205,9 @@ int OpenSerialPort_ (const char * portFileName, uint32_t baudrate, bool verbose)
     ttyCtrl.c_cc[VTIME]     =   30; // 3 seconds read timeout
     ttyCtrl.c_cflag     |=  CREAD | CLOCAL; // turn on READ & ignore ctrl lines
     ttyCtrl.c_iflag     &=  ~(IXON | IXOFF | IXANY);// turn off s/w flow ctrl
-    ttyCtrl.c_lflag     &=  ~(ICANON | ECHO | ECHOE | ISIG); // make raw
+    ttyCtrl.c_iflag     &=  ~(BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);// make raw 
+    ttyCtrl.c_lflag     &=  ~(ICANON | ECHO | ECHOE | ISIG); // make raw 
+    ttyCtrl.c_lflag     &=  ~(ECHONL | IEXTEN);
     ttyCtrl.c_oflag     &=  ~OPOST; // make raw
     tcflush(ttyHandle, TCIFLUSH ); // Flush port
     if (tcsetattr (ttyHandle, TCSANOW, &ttyCtrl) != 0)
@@ -218,6 +220,14 @@ int OpenSerialPort_ (const char * portFileName, uint32_t baudrate, bool verbose)
 #endif
 
 //////////////////////////////////////////////////////////////////////////
+
+static uint16_t get_uint16(uint8_t *buffer)
+{
+	uint16_t res= buffer[0] |
+                 (((uint16_t ) buffer[1])<<8);
+
+    return res;
+}
 
 static int16_t get_int16(uint8_t *buffer)
 {
@@ -516,6 +526,60 @@ static void process_raw_distances_datagram(struct MarvelmindHedge * hedge, uint8
     hedge->rawDistances.updated= true;
 }
 
+static void process_telemetry_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
+{uint8_t *dataBuf= &buffer[5];
+
+   hedge->telemetry.vbat_mv= get_uint16(&dataBuf[0]);
+   hedge->telemetry.rssi_dbm= (int8_t) dataBuf[2];
+
+   hedge->telemetry.updated= true;
+}
+
+static void process_quality_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
+{uint8_t *dataBuf= &buffer[5];
+
+   hedge->quality.address= dataBuf[0];
+   hedge->quality.quality_per= dataBuf[1];
+
+   hedge->quality.updated= true;
+}
+
+static void send_waypoint_confirm(int ttyHandle) {
+    uint8_t buf[100];
+    
+    buf[0]= 0;
+    buf[1]= 0x4a;
+    buf[2]= WAYPOINT_DATAGRAM_ID & 0xff;
+    buf[3]= (WAYPOINT_DATAGRAM_ID >>8) &0xff;
+    
+    uint16_t crc= CalcCrcModbus_(&buf[0], 4);
+    
+    buf[4]= crc&0xff;
+    buf[5]= (crc>>8)&0xff;
+    
+    write(ttyHandle, &buf[0], 5+2);
+}
+
+static void process_waypoint_data(struct MarvelmindHedge * hedge, uint8_t *buffer)
+{uint8_t *dataBuf= &buffer[5];
+	
+   uint8_t movementType= dataBuf[0];
+   uint8_t itemIndex= dataBuf[1];	
+   uint8_t totalNum= dataBuf[2];
+   int16_t param1= get_int16(&dataBuf[3]);
+   int16_t param2= get_int16(&dataBuf[5]);
+   int16_t param3= get_int16(&dataBuf[7]);
+     
+   hedge->waypoints.items[itemIndex].movementType= movementType;
+   hedge->waypoints.items[itemIndex].param1= param1;
+   hedge->waypoints.items[itemIndex].param2= param2;
+   hedge->waypoints.items[itemIndex].param3= param3;
+   hedge->waypoints.items[itemIndex].updated= true;
+   
+   hedge->waypoints.numItems= totalNum;
+   hedge->waypoints.updated= true;
+}
+
 ////////////////////
 
 enum
@@ -564,15 +628,16 @@ Marvelmind_Thread_ (void* param)
         fds[0].events = POLLIN ;
         pollrc = poll( fds, 1, 1000);
         if (pollrc<=0) continue;
-        if ((fds[0].revents & POLLIN )==0) continue;      
+        if ((fds[0].revents & POLLIN )==0) continue;  
         
         nBytesRead=read(ttyHandle, &receivedChar, 1);
         if (nBytesRead<0) readSuccessed=false;
 #endif
         if (nBytesRead && readSuccessed)
-        {
+        {			
             bool goodByte= false;
             input_buffer[nBytesInBlockReceived]= receivedChar;
+            //printf("%02d/%02d ", nBytesInBlockReceived, receivedChar);
             switch (recvState)
             {
             case RECV_HDR:
@@ -582,20 +647,29 @@ Marvelmind_Thread_ (void* param)
                         goodByte= (receivedChar == 0xff);
                         break;
                     case 1:
-                        goodByte= (receivedChar == 0x47);
+                        goodByte= (receivedChar == 0x47)  || (receivedChar == 0x4a);
                         break;
                     case 2:
                         goodByte= true;
                         break;
                     case 3:
                         dataId= (((uint16_t) receivedChar)<<8) + input_buffer[2];
-                        goodByte=   (dataId == POSITION_DATAGRAM_ID) ||
-                                    (dataId == BEACONS_POSITIONS_DATAGRAM_ID) ||
-                                    (dataId == POSITION_DATAGRAM_HIGHRES_ID) ||
-                                    (dataId == BEACONS_POSITIONS_DATAGRAM_HIGHRES_ID) ||
-                                    (dataId == IMU_RAW_DATAGRAM_ID) ||
-                                    (dataId == IMU_FUSION_DATAGRAM_ID) ||
-                                    (dataId == BEACON_RAW_DISTANCE_DATAGRAM_ID);
+                        if (input_buffer[1] == 0x47) 
+                          {
+	                        goodByte=   (dataId == POSITION_DATAGRAM_ID) ||
+	                                    (dataId == BEACONS_POSITIONS_DATAGRAM_ID) ||
+	                                    (dataId == POSITION_DATAGRAM_HIGHRES_ID) ||
+	                                    (dataId == BEACONS_POSITIONS_DATAGRAM_HIGHRES_ID) ||
+	                                    (dataId == IMU_RAW_DATAGRAM_ID) ||
+	                                    (dataId == IMU_FUSION_DATAGRAM_ID) ||
+	                                    (dataId == BEACON_RAW_DISTANCE_DATAGRAM_ID) ||
+	                                    (dataId == TELEMETRY_DATAGRAM_ID) ||
+	                                    (dataId == QUALITY_DATAGRAM_ID);
+                          }
+                        else if (input_buffer[1] == 0x4a) 
+                          {
+							  goodByte= (dataId == WAYPOINT_DATAGRAM_ID);
+					      }  
                         break;
                     case 4:
                         switch(dataId )
@@ -619,6 +693,15 @@ Marvelmind_Thread_ (void* param)
                             case BEACON_RAW_DISTANCE_DATAGRAM_ID:
                                 goodByte= (receivedChar == 0x20);
                                 break;
+                            case TELEMETRY_DATAGRAM_ID:
+                                goodByte= (receivedChar == 0x10);
+                                break;
+                            case QUALITY_DATAGRAM_ID:
+                                goodByte= (receivedChar == 0x10);
+                                break;
+                            case WAYPOINT_DATAGRAM_ID:
+                                goodByte= (receivedChar == 0x0c);
+                                break;
                         }
                         if (goodByte)
                             recvState=RECV_DGRAM;
@@ -638,8 +721,10 @@ Marvelmind_Thread_ (void* param)
                 break;
             case RECV_DGRAM:
                 nBytesInBlockReceived++;
+                
+                //printf("%02d/%02d ", nBytesInBlockReceived, input_buffer[4]);
                 if (nBytesInBlockReceived>=7+input_buffer[4])
-                {
+                {			
                     // parse dgram
                     uint16_t blockCrc=
                         CalcCrcModbus_(input_buffer,nBytesInBlockReceived);
@@ -674,6 +759,16 @@ Marvelmind_Thread_ (void* param)
                                 break;
                             case BEACON_RAW_DISTANCE_DATAGRAM_ID:
                                 process_raw_distances_datagram(hedge, input_buffer);
+                                break;
+                            case TELEMETRY_DATAGRAM_ID:
+                                process_telemetry_datagram(hedge, input_buffer);
+                                break;
+                            case QUALITY_DATAGRAM_ID:
+                                process_quality_datagram(hedge, input_buffer);
+                                break;
+                            case WAYPOINT_DATAGRAM_ID:
+                                process_waypoint_data(hedge, input_buffer);
+                                send_waypoint_confirm(ttyHandle);
                                 break;
                         }
 #ifdef WIN32
@@ -767,6 +862,16 @@ void startMarvelmindHedge (struct MarvelmindHedge * hedge)
     }
     hedge->positionsBeacons.numBeacons= 0;
     hedge->positionsBeacons.updated= false;
+    
+    hedge->telemetry.updated= false;
+    hedge->quality.updated= false;
+    
+    hedge->waypoints.updated= false;
+    hedge->waypoints.numItems= 0;
+    for(i=0;i<MAX_WAYPOINTS_NUM;i++)
+    {
+		hedge->waypoints.items[i].updated= false;
+	}
     
 #ifdef WIN32
     _beginthread (Marvelmind_Thread_, 0, hedge);

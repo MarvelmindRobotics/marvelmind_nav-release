@@ -12,6 +12,9 @@
 #include "marvelmind_nav/hedge_imu_raw.h"
 #include "marvelmind_nav/hedge_imu_fusion.h"
 #include "marvelmind_nav/beacon_distance.h"
+#include "marvelmind_nav/hedge_telemetry.h"
+#include "marvelmind_nav/hedge_quality.h"
+#include "marvelmind_nav/marvelmind_waypoint.h"
 extern "C" 
 {
 #include "marvelmind_nav/marvelmind_hedge.h"
@@ -20,13 +23,16 @@ extern "C"
 #include <sstream>
 
 #define ROS_NODE_NAME "hedge_rcv_bin"
-#define HEDGE_POSITION_TOPIC_NAME "/hedge_pos"
-#define HEDGE_POSITION_ADDRESSED_TOPIC_NAME "/hedge_pos_a"
-#define HEDGE_POSITION_WITH_ANGLE_TOPIC_NAME "/hedge_pos_ang"
-#define BEACONS_POSITION_ADDRESSED_TOPIC_NAME "/beacons_pos_a"
-#define HEDGE_IMU_RAW_TOPIC_NAME "/hedge_imu_raw"
-#define HEDGE_IMU_FUSION_TOPIC_NAME "/hedge_imu_fusion"
-#define BEACON_RAW_DISTANCE_TOPIC_NAME "/beacon_raw_distance"
+#define HEDGE_POSITION_TOPIC_NAME "hedge_pos"
+#define HEDGE_POSITION_ADDRESSED_TOPIC_NAME "hedge_pos_a"
+#define HEDGE_POSITION_WITH_ANGLE_TOPIC_NAME "hedge_pos_ang"
+#define BEACONS_POSITION_ADDRESSED_TOPIC_NAME "beacons_pos_a"
+#define HEDGE_IMU_RAW_TOPIC_NAME "hedge_imu_raw"
+#define HEDGE_IMU_FUSION_TOPIC_NAME "hedge_imu_fusion"
+#define BEACON_RAW_DISTANCE_TOPIC_NAME "beacon_raw_distance"
+#define HEDGE_TELEMETRY_TOPIC_NAME "hedge_telemetry"
+#define HEDGE_QUALITY_TOPIC_NAME "hedge_quality"
+#define MARVELMIND_WAYPOINT_TOPIC_NAME "marvelmind_waypoint"
 
 struct MarvelmindHedge * hedge= NULL;
 
@@ -38,6 +44,9 @@ marvelmind_nav::beacon_pos_a beacon_pos_msg;// stationary beacon coordinates mes
 marvelmind_nav::hedge_imu_raw hedge_imu_raw_msg;// raw IMU data message for publishing to ROS topic
 marvelmind_nav::hedge_imu_fusion hedge_imu_fusion_msg;// IMU fusion data message for publishing to ROS topic
 marvelmind_nav::beacon_distance beacon_raw_distance_msg;// Raw distance message for publishing to ROS topic
+marvelmind_nav::hedge_telemetry hedge_telemetry_msg;// Telemetry message for publishing to ROS topic
+marvelmind_nav::hedge_quality hedge_quality_msg;// Quality message for publishing to ROS topic
+marvelmind_nav::marvelmind_waypoint marvelmind_waypoint_msg;// Waypoint message for publishing to ROS topic
 
 static sem_t *sem;
 struct timespec ts;
@@ -53,8 +62,11 @@ static int hedgeReceivePrepare(int argc, char **argv)
 {
 	 // get port name from command line arguments (if specified)
     const char * ttyFileName;
-    if (argc==2) ttyFileName=argv[1];
-    else ttyFileName=DEFAULT_TTY_FILENAME;
+    uint32_t baudRate;
+    if (argc>=2) ttyFileName=argv[1];
+      else ttyFileName=DEFAULT_TTY_FILENAME;
+    if (argc>=3) baudRate= atoi(argv[2]);
+      else baudRate=DEFAULT_TTY_BAUDRATE;
     
     // Init
     hedge=createMarvelmindHedge ();
@@ -64,6 +76,7 @@ static int hedgeReceivePrepare(int argc, char **argv)
         return -1;
     }
     hedge->ttyFileName=ttyFileName;
+    hedge->baudRate= baudRate;
     hedge->verbose=true; // show errors and warnings
     hedge->anyInputPacketCallback= semCallback;
     startMarvelmindHedge (hedge);
@@ -211,13 +224,71 @@ static void getRawDistance(uint8_t index)
   beacon_raw_distance_msg.distance_m= hedge->rawDistances.distances[index].distance/1000.0;
 }
 
+static bool hedgeTelemetryUpdateCheck(void)
+{
+	if (!hedge->telemetry.updated) 
+		return false;
+		
+	hedge_telemetry_msg.battery_voltage= hedge->telemetry.vbat_mv/1000.0;
+	hedge_telemetry_msg.rssi_dbm= hedge->telemetry.rssi_dbm;
+		
+	hedge->telemetry.updated= false;
+	return true;
+}
+
+static bool hedgeQualityUpdateCheck(void)
+{
+	if (!hedge->quality.updated) 
+		return false;
+		
+	hedge_quality_msg.address= hedge->quality.address;
+	hedge_quality_msg.quality_percents= hedge->quality.quality_per;
+		
+	hedge->quality.updated= false;
+	return true;
+}
+
+static bool marvelmindWaypointUpdateCheck(void)
+{uint8_t i,n;
+ uint8_t nUpdated;
+	
+	if (!hedge->waypoints.updated) 
+		return false;
+		
+	nUpdated= 0;
+    n= hedge->waypoints.numItems;
+    for(i=0;i<n;i++)
+    {
+		if (!hedge->waypoints.items[i].updated) 
+		  continue;
+		  
+		nUpdated++;
+		if (nUpdated == 1)
+		{
+		  marvelmind_waypoint_msg.total_items= n;
+		  marvelmind_waypoint_msg.item_index= i;
+		  
+		  marvelmind_waypoint_msg.movement_type= hedge->waypoints.items[i].movementType;
+		  marvelmind_waypoint_msg.param1= hedge->waypoints.items[i].param1;
+		  marvelmind_waypoint_msg.param2= hedge->waypoints.items[i].param2;
+		  marvelmind_waypoint_msg.param3= hedge->waypoints.items[i].param3;
+		  
+	      hedge->waypoints.items[i].updated= false;
+	    }
+	}		
+		
+	if (nUpdated==1) 
+	{
+		hedge->waypoints.updated= false;
+	}
+	return (nUpdated>0);
+}
 
 /**
  * Node for Marvelmind hedgehog binary streaming data processing
  */
 int main(int argc, char **argv)
 {uint8_t beaconReadIterations;
- uint8_t rawDistanceReadIterations;	
   // initialize ROS node
   ros::init(argc, argv, ROS_NODE_NAME);
   
@@ -240,7 +311,11 @@ int main(int argc, char **argv)
   ros::Publisher hedge_imu_fusion_publisher = n.advertise<marvelmind_nav::hedge_imu_fusion>(HEDGE_IMU_FUSION_TOPIC_NAME, 1000);
   
   ros::Publisher beacon_distance_publisher = n.advertise<marvelmind_nav::beacon_distance>(BEACON_RAW_DISTANCE_TOPIC_NAME, 1000);
-
+  
+  ros::Publisher hedge_telemetry_publisher = n.advertise<marvelmind_nav::hedge_telemetry>(HEDGE_TELEMETRY_TOPIC_NAME, 1000);
+  ros::Publisher hedge_quality_publisher = n.advertise<marvelmind_nav::hedge_quality>(HEDGE_QUALITY_TOPIC_NAME, 1000);
+  
+  ros::Publisher marvelmind_waypoint_publisher = n.advertise<marvelmind_nav::marvelmind_waypoint>(MARVELMIND_WAYPOINT_TOPIC_NAME, 1000);
 
   // 200 Hz 
   ros::Rate loop_rate(200);
@@ -337,10 +412,10 @@ int main(int argc, char **argv)
 		hedge_imu_fusion_publisher.publish(hedge_imu_fusion_msg);
     } 
     
-    rawDistanceReadIterations= 0;
     if (hedge->rawDistances.updated)
-     {
-		for(uint8_t i=0;i<4;i++)
+     {uint8_t i;
+     
+		for(i=0;i<4;i++)
 		{
 		  getRawDistance(i);
 		  if (beacon_raw_distance_msg.address_beacon != 0)
@@ -353,7 +428,33 @@ int main(int argc, char **argv)
 		  }	
 		} 
 		hedge->rawDistances.updated= false;
+	 }
+	 
+	if (hedgeTelemetryUpdateCheck())
+	 {
+		 ROS_INFO("Vbat= %.3f V, RSSI= %02d ", 	
+				(float) hedge_telemetry_msg.battery_voltage,
+				(int) hedge_telemetry_msg.rssi_dbm);
+		 hedge_telemetry_publisher.publish(hedge_telemetry_msg);
 	 } 
+	 
+	if (hedgeQualityUpdateCheck())
+	 {
+		 ROS_INFO("Quality: Address= %d,  Quality= %02d %% ", 	
+				(int) hedge_quality_msg.address,
+				(int) hedge_quality_msg.quality_percents);
+		 hedge_quality_publisher.publish(hedge_quality_msg);
+	 }
+	 
+	if (marvelmindWaypointUpdateCheck())
+	 {
+		 int n= marvelmind_waypoint_msg.item_index+1;
+		 ROS_INFO("Waypoint %03d/%03d: Type= %03d,  Param1= %05d, Param2= %05d, Param3= %05d ", 	
+				(int) n,
+				(int) marvelmind_waypoint_msg.total_items, marvelmind_waypoint_msg.movement_type,
+				marvelmind_waypoint_msg.param1, marvelmind_waypoint_msg.param2, marvelmind_waypoint_msg.param3);
+		 marvelmind_waypoint_publisher.publish(marvelmind_waypoint_msg);
+	 }
 
     ros::spinOnce();
 

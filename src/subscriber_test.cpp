@@ -7,19 +7,26 @@
 #include "marvelmind_nav/hedge_imu_raw.h"
 #include "marvelmind_nav/hedge_imu_fusion.h"
 #include "marvelmind_nav/beacon_distance.h"
+#include "marvelmind_nav/hedge_telemetry.h"
+#include "marvelmind_nav/hedge_quality.h"
+#include "marvelmind_nav/marvelmind_waypoint.h"
 #include <visualization_msgs/Marker.h>
 
 #define ROS_NODE_NAME "subscriber_test"
-#define HEDGE_POSITION_TOPIC_NAME "/hedge_pos"
-#define HEDGE_POSITION_ADDRESSED_TOPIC_NAME "/hedge_pos_a"
-#define HEDGE_POSITION_WITH_ANGLE_TOPIC_NAME "/hedge_pos_ang"
+#define HEDGE_POSITION_TOPIC_NAME "hedge_pos"
+#define HEDGE_POSITION_ADDRESSED_TOPIC_NAME "hedge_pos_a"
+#define HEDGE_POSITION_WITH_ANGLE_TOPIC_NAME "hedge_pos_ang"
 
-#define BEACONS_POSITION_ADDRESSED_TOPIC_NAME "/beacons_pos_a"
+#define BEACONS_POSITION_ADDRESSED_TOPIC_NAME "beacons_pos_a"
 
-#define HEDGE_IMU_RAW_TOPIC_NAME "/hedge_imu_raw"
-#define HEDGE_IMU_FUSION_TOPIC_NAME "/hedge_imu_fusion"
+#define HEDGE_IMU_RAW_TOPIC_NAME "hedge_imu_raw"
+#define HEDGE_IMU_FUSION_TOPIC_NAME "hedge_imu_fusion"
 
-#define BEACON_RAW_DISTANCE_TOPIC_NAME "/beacon_raw_distance"
+#define BEACON_RAW_DISTANCE_TOPIC_NAME "beacon_raw_distance"
+
+#define HEDGE_TELEMETRY_TOPIC_NAME "hedge_telemetry"
+#define HEDGE_QUALITY_TOPIC_NAME "hedge_quality"
+#define MARVELMIND_WAYPOINT_TOPIC_NAME "marvelmind_waypoint"
 
 #define SCALE_HEDGE 3.0
 
@@ -186,6 +193,28 @@ void RawDistanceCallback(const marvelmind_nav::beacon_distance& beacon_raw_dista
 				(float) beacon_raw_distance_msg.distance_m);
 }
 
+void telemetryCallback(const marvelmind_nav::hedge_telemetry& hedge_telemetry_msg)
+{
+	ROS_INFO("Vbat= %.3f V, RSSI= %02d ", 	
+				(float) hedge_telemetry_msg.battery_voltage,
+				(int) hedge_telemetry_msg.rssi_dbm);
+}
+
+void qualityCallback(const marvelmind_nav::hedge_quality& hedge_quality_msg)
+{
+	ROS_INFO("Quality: Address= %d,  Quality= %02d %% ", 	
+				(int) hedge_quality_msg.address,
+				(int) hedge_quality_msg.quality_percents);
+}
+
+void waypointCallback(const marvelmind_nav::marvelmind_waypoint& marvelmind_waypoint_msg)
+{
+	int n= marvelmind_waypoint_msg.item_index+1;
+    ROS_INFO("Waypoint %03d/%03d: Type= %03d,  Param1= %05d, Param2= %05d, Param3= %05d ", 	
+				(int) n,
+				(int) marvelmind_waypoint_msg.total_items, marvelmind_waypoint_msg.movement_type,
+				marvelmind_waypoint_msg.param1, marvelmind_waypoint_msg.param2, marvelmind_waypoint_msg.param3);
+}
 
 /**
  * Test subscriber node for getting data from Marvelmind publishers nodes
@@ -207,6 +236,9 @@ int main(int argc, char **argv)
   ros::Subscriber subIMURaw = rosNode.subscribe(HEDGE_IMU_RAW_TOPIC_NAME, 1000, IMURawCallback);
   ros::Subscriber subIMUFusion = rosNode.subscribe(HEDGE_IMU_FUSION_TOPIC_NAME, 1000, IMUFusionCallback);
   ros::Subscriber subRawDistance = rosNode.subscribe(BEACON_RAW_DISTANCE_TOPIC_NAME, 1000, RawDistanceCallback);
+  ros::Subscriber subTelemetry = rosNode.subscribe(HEDGE_TELEMETRY_TOPIC_NAME, 1000, telemetryCallback);
+  ros::Subscriber subQuality = rosNode.subscribe(HEDGE_QUALITY_TOPIC_NAME, 1000, qualityCallback);
+  ros::Subscriber subWaypoint = rosNode.subscribe(MARVELMIND_WAYPOINT_TOPIC_NAME, 1000, waypointCallback);
   
   // Declare publisher for rviz visualization
   rviz_marker_pub = rosNode.advertise<visualization_msgs::Marker>("visualization_marker", 1);

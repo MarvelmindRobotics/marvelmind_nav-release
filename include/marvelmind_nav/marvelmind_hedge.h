@@ -84,13 +84,47 @@ struct StationaryBeaconPosition
     bool updatedForMsg;
     bool highResolution;
 };
-#define MAX_STATIONARY_BEACONS 30
+#define MAX_STATIONARY_BEACONS 255
 struct StationaryBeaconsPositions
 {
     uint8_t numBeacons;
     struct StationaryBeaconPosition beacons[MAX_STATIONARY_BEACONS];
 
     bool updated;
+};
+
+struct TelemetryData
+{
+    uint16_t vbat_mv;
+    int8_t rssi_dbm;
+
+    bool updated;
+};
+
+struct QualityData
+{
+    uint8_t address;
+    uint8_t quality_per;
+
+    bool updated;
+};
+
+#define MAX_WAYPOINTS_NUM 255
+struct WaypointData
+{
+	uint8_t movementType;
+	int16_t param1;
+	int16_t param2;
+	int16_t param3;
+	
+	bool updated;
+};
+struct WaypointsData
+{
+	uint8_t numItems;
+	struct WaypointData items[MAX_WAYPOINTS_NUM];
+	
+	bool updated;
 };
 
 struct MarvelmindHedge
@@ -118,6 +152,10 @@ struct MarvelmindHedge
     struct FusionIMUValue fusionIMU;
     
     struct RawDistances rawDistances;
+    
+    struct TelemetryData telemetry;
+    struct QualityData quality;
+    struct WaypointsData waypoints;
 
 // verbose flag which activate console output
 //		default: False
@@ -153,6 +191,9 @@ struct MarvelmindHedge
 #define IMU_RAW_DATAGRAM_ID 0x0003
 #define BEACON_RAW_DISTANCE_DATAGRAM_ID 0x0004
 #define IMU_FUSION_DATAGRAM_ID 0x0005
+#define TELEMETRY_DATAGRAM_ID 0x0006
+#define QUALITY_DATAGRAM_ID 0x0007
+#define WAYPOINT_DATAGRAM_ID 0x0201
 
 struct MarvelmindHedge * createMarvelmindHedge ();
 void destroyMarvelmindHedge (struct MarvelmindHedge * hedge);
@@ -176,3 +217,5 @@ void stopMarvelmindHedge (struct MarvelmindHedge * hedge);
 #else
 #define DEFAULT_TTY_FILENAME "/dev/ttyACM0"
 #endif // WIN32
+
+#define DEFAULT_TTY_BAUDRATE 9600UL
