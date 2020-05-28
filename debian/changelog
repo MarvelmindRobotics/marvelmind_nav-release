@@ -1,0 +1,47 @@
+ros-melodic-marvelmind-nav (1.0.9-3bionic) bionic; urgency=high
+
+  * Merge branch 'master' of https://smoker77@bitbucket.org/marvelmind_robotics/ros_marvelmind_package.git
+  * Added waypoints, quality, telemetry messages. Baudrate setup via command
+    line. Relative topic names for namespaces.
+  * Contributors: smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 27 May 2020 21:00:00 -0000
+
+ros-melodic-marvelmind-nav (1.0.8-3bionic) bionic; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 14 Mar 2018 21:00:00 -0000
+
+ros-melodic-marvelmind-nav (1.0.7-3bionic) bionic; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Mar 2018 21:00:00 -0000
+
+ros-melodic-marvelmind-nav (1.0.6-3bionic) bionic; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Thu, 09 Feb 2017 21:00:00 -0000
+
+ros-melodic-marvelmind-nav (1.0.5-3bionic) bionic; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 14 Sep 2016 21:00:00 -0000
+
+ros-melodic-marvelmind-nav (1.0.4-3bionic) bionic; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Sep 2016 21:00:00 -0000
+
+ros-melodic-marvelmind-nav (1.0.3-3bionic) bionic; urgency=high
+
+  * initial commit
+  * Contributors: smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Sep 2016 21:00:00 -0000
+
+

@@ -1,0 +1,12 @@
+Source: ros-melodic-marvelmind-nav
+Section: misc
+Priority: optional
+Maintainer: smoker77 <smoker77@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), ros-melodic-catkin, ros-melodic-message-generation, ros-melodic-roscpp, ros-melodic-rospy, ros-melodic-std-msgs, ros-melodic-visualization-msgs
+Homepage: http://marvelmind.com
+Standards-Version: 3.9.2
+
+Package: ros-melodic-marvelmind-nav
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-melodic-message-runtime, ros-melodic-roscpp, ros-melodic-rospy, ros-melodic-std-msgs, ros-melodic-visualization-msgs
+Description: Marvelmind local navigation system
