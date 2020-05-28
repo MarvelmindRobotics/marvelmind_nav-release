@@ -85,10 +85,10 @@ tracks:
     - git-bloom-generate -y rosrpm --prefix release/:{ros_distro} :{ros_distro} -i
       :{release_inc}
     devel_branch: null
-    last_version: 1.0.9
+    last_version: 1.0.10
     name: marvelmind_nav
     patches: null
-    release_inc: '3'
+    release_inc: '1'
     release_repo_url: null
     release_tag: :{version}
     ros_distro: melodic
