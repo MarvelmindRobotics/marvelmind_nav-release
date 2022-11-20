@@ -1,5 +1,8 @@
 Changelog for package marvelmind_nav
 
+1.0.13 (2022-11-20)
+-------------------
+
 1.0.12 (2022-11-20)
 -------------------
 * Realtime timestamps support
