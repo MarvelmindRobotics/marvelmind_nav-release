@@ -106,6 +106,8 @@ static int hedgeReceivePrepare(int argc, char **argv)
     hedge->verbose=true; // show errors and warnings
     hedge->anyInputPacketCallback= semCallback;
     startMarvelmindHedge (hedge);
+
+    return 0;
 }
 
 static bool hedgeReceiveCheck(void)
