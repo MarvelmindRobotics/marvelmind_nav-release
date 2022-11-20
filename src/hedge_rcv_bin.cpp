@@ -62,7 +62,7 @@ extern "C"
 
 struct MarvelmindHedge * hedge= NULL;
 
-static uint32_t hedge_timestamp_prev= 0;
+static int64_t hedge_timestamp_prev= 0;
 marvelmind_nav::hedge_pos hedge_pos_noaddress_msg;// hedge coordinates message (old version without address) for publishing to ROS topic
 marvelmind_nav::hedge_pos_a hedge_pos_msg;// hedge coordinates message for publishing to ROS topic
 marvelmind_nav::hedge_pos_ang hedge_pos_ang_msg;// hedge coordinates and angle message for publishing to ROS topic
@@ -121,17 +121,24 @@ static bool hedgeReceiveCheck(void)
         hedge_pos_msg.flags= position.flags;
         hedge_pos_noaddress_msg.flags= position.flags;
         hedge_pos_ang_msg.flags= position.flags;
+        int64_t t;
+        if (position.realTime) {
+            t = position.timestamp.timestamp64;
+        }
+        else {
+            t = position.timestamp.timestamp32;
+        }
         if (hedge_pos_msg.flags&(1<<1))// flag of timestamp format 
           {
-			hedge_pos_msg.timestamp_ms= position.timestamp;// msec
-			hedge_pos_noaddress_msg.timestamp_ms= position.timestamp;
+			hedge_pos_msg.timestamp_ms= t;// msec
+			hedge_pos_noaddress_msg.timestamp_ms= t;
 		  }	
 	     else 
 	      {
-            hedge_pos_msg.timestamp_ms= position.timestamp*15.625;// alpha-cycles ==> msec
-            hedge_pos_noaddress_msg.timestamp_ms= position.timestamp*15.625;
+            hedge_pos_msg.timestamp_ms= position.timestamp.timestamp32*15.625;// alpha-cycles ==> msec
+            hedge_pos_noaddress_msg.timestamp_ms= position.timestamp.timestamp32*15.625;
           } 
-        hedge_pos_ang_msg.timestamp_ms= position.timestamp;
+        hedge_pos_ang_msg.timestamp_ms= t;
           
         hedge_pos_msg.x_m= position.x/1000.0; 
         hedge_pos_msg.y_m= position.y/1000.0; 
@@ -207,7 +214,14 @@ static bool hedgeIMURawReceiveCheck(void)
   hedge_imu_raw_msg.compass_y= hedge->rawIMU.compass_y;
   hedge_imu_raw_msg.compass_z= hedge->rawIMU.compass_z;
   
-  hedge_imu_raw_msg.timestamp_ms= hedge->rawIMU.timestamp;
+  int64_t t;
+  if (hedge->rawIMU.realTime) {
+      t = hedge->rawIMU.timestamp.timestamp64;
+  }
+  else {
+      t = hedge->rawIMU.timestamp.timestamp32;
+  }
+  hedge_imu_raw_msg.timestamp_ms= t;
   
   hedge->rawIMU.updated= false;
   
@@ -236,7 +250,14 @@ static bool hedgeIMUFusionReceiveCheck(void)
   hedge_imu_fusion_msg.ay= hedge->fusionIMU.ay/1000.0;
   hedge_imu_fusion_msg.az= hedge->fusionIMU.az/1000.0;
   
-  hedge_imu_fusion_msg.timestamp_ms= hedge->fusionIMU.timestamp;
+  int64_t t;
+  if (hedge->fusionIMU.realTime) {
+      t = hedge->fusionIMU.timestamp.timestamp64;
+  }
+  else {
+      t = hedge->fusionIMU.timestamp.timestamp32;
+  }
+  hedge_imu_fusion_msg.timestamp_ms= t;
   
   hedge->fusionIMU.updated= false;
   

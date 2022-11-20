@@ -27,6 +27,7 @@ DAMAGE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #ifdef WIN32
 #include <windows.h>
 #include <process.h>
@@ -310,11 +311,12 @@ static struct PositionValue process_position_datagram(struct MarvelmindHedge * h
 
     hedge->positionBuffer[ind].address=
         buffer[16];
-    hedge->positionBuffer[ind].timestamp=
+    hedge->positionBuffer[ind].timestamp.timestamp32=
         buffer[5] |
         (((uint32_t ) buffer[6])<<8) |
         (((uint32_t ) buffer[7])<<16) |
         (((uint32_t ) buffer[8])<<24);
+    hedge->positionBuffer[ind].realTime = false;
 
     int16_t vx= buffer[9] |
                 (((uint16_t ) buffer[10])<<8);
@@ -341,46 +343,63 @@ static struct PositionValue process_position_datagram(struct MarvelmindHedge * h
     return hedge->positionBuffer[ind];
 }
 
-static struct PositionValue process_position_highres_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
-{uint8_t ind= hedge->lastValues_next;
-
-    hedge->positionBuffer[ind].address=
+static struct PositionValue process_position_highres_datagram_main(struct MarvelmindHedge* hedge, uint8_t* buffer, uint8_t ind) {
+    hedge->positionBuffer[ind].address =
         buffer[22];
-    hedge->positionBuffer[ind].timestamp=
-        buffer[5] |
-        (((uint32_t ) buffer[6])<<8) |
-        (((uint32_t ) buffer[7])<<16) |
-        (((uint32_t ) buffer[8])<<24);
 
-    int32_t vx= buffer[9] |
-                (((uint32_t ) buffer[10])<<8) |
-                (((uint32_t ) buffer[11])<<16) |
-                (((uint32_t ) buffer[12])<<24);
-    hedge->positionBuffer[ind].x= vx;
+    int32_t vx = buffer[9] |
+        (((uint32_t)buffer[10]) << 8) |
+        (((uint32_t)buffer[11]) << 16) |
+        (((uint32_t)buffer[12]) << 24);
+    hedge->positionBuffer[ind].x = vx;
 
-    int32_t vy= buffer[13] |
-                (((uint32_t ) buffer[14])<<8) |
-                (((uint32_t ) buffer[15])<<16) |
-                (((uint32_t ) buffer[16])<<24);
-    hedge->positionBuffer[ind].y= vy;
+    int32_t vy = buffer[13] |
+        (((uint32_t)buffer[14]) << 8) |
+        (((uint32_t)buffer[15]) << 16) |
+        (((uint32_t)buffer[16]) << 24);
+    hedge->positionBuffer[ind].y = vy;
 
-    int32_t vz= buffer[17] |
-                (((uint32_t ) buffer[18])<<8) |
-                (((uint32_t ) buffer[19])<<16) |
-                (((uint32_t ) buffer[20])<<24);
-    hedge->positionBuffer[ind].z= vz;
-    
-    hedge->positionBuffer[ind].flags= buffer[21];
-    
-    uint16_t vang= buffer[23] |
-                   (((uint16_t ) buffer[24])<<8);
-    hedge->positionBuffer[ind].angle= ((float) (vang & 0x0fff))/10.0f;
+    int32_t vz = buffer[17] |
+        (((uint32_t)buffer[18]) << 8) |
+        (((uint32_t)buffer[19]) << 16) |
+        (((uint32_t)buffer[20]) << 24);
+    hedge->positionBuffer[ind].z = vz;
 
-    hedge->positionBuffer[ind].highResolution= true;
+    hedge->positionBuffer[ind].flags = buffer[21];
 
-    ind= markPositionReady(hedge);
+    uint16_t vang = buffer[23] |
+        (((uint16_t)buffer[24]) << 8);
+    hedge->positionBuffer[ind].angle = ((float)(vang & 0x0fff)) / 10.0f;
+
+    hedge->positionBuffer[ind].highResolution = true;
+
+    ind = markPositionReady(hedge);
 
     return hedge->positionBuffer[ind];
+}
+
+static struct PositionValue process_position_highres_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
+{
+    uint8_t ind = hedge->lastValues_next;
+
+    hedge->positionBuffer[ind].timestamp.timestamp32 =
+        buffer[5] |
+        (((uint32_t)buffer[6]) << 8) |
+        (((uint32_t)buffer[7]) << 16) |
+        (((uint32_t)buffer[8]) << 24);
+    hedge->positionBuffer[ind].realTime = false;
+
+    return process_position_highres_datagram_main(hedge, buffer, ind);
+}
+
+static struct PositionValue process_nt_position_highres_datagram(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t ind = hedge->lastValues_next;
+
+    memcpy(&hedge->positionBuffer[ind].timestamp, &buffer[5], 8);
+    hedge->positionBuffer[ind].realTime = true;
+
+    return process_position_highres_datagram_main(hedge, &buffer[4], ind);
 }
 
 static struct StationaryBeaconPosition *getOrAllocBeacon(struct MarvelmindHedge * hedge,uint8_t address)
@@ -488,68 +507,133 @@ static void process_beacons_positions_highres_datagram(struct MarvelmindHedge * 
     }
 }
 
+static void process_imu_raw_datagram_main(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+
+    hedge->rawIMU.acc_x = get_int16(&dataBuf[0]);
+    hedge->rawIMU.acc_y = get_int16(&dataBuf[2]);
+    hedge->rawIMU.acc_z = get_int16(&dataBuf[4]);
+
+    //
+    hedge->rawIMU.gyro_x = get_int16(&dataBuf[6]);
+    hedge->rawIMU.gyro_y = get_int16(&dataBuf[8]);
+    hedge->rawIMU.gyro_z = get_int16(&dataBuf[10]);
+
+    //
+    hedge->rawIMU.compass_x = get_int16(&dataBuf[12]);
+    hedge->rawIMU.compass_y = get_int16(&dataBuf[14]);
+    hedge->rawIMU.compass_z = get_int16(&dataBuf[16]);
+
+    hedge->rawIMU.updated = true;
+}
+
 static void process_imu_raw_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
-{uint8_t *dataBuf= &buffer[5];
-	
-    hedge->rawIMU.acc_x= get_int16(&dataBuf[0]);
-    hedge->rawIMU.acc_y= get_int16(&dataBuf[2]);
-    hedge->rawIMU.acc_z= get_int16(&dataBuf[4]);
-    
-    //
-    hedge->rawIMU.gyro_x= get_int16(&dataBuf[6]);
-    hedge->rawIMU.gyro_y= get_int16(&dataBuf[8]);
-    hedge->rawIMU.gyro_z= get_int16(&dataBuf[10]);
-    
-    //
-    hedge->rawIMU.compass_x= get_int16(&dataBuf[12]);
-    hedge->rawIMU.compass_y= get_int16(&dataBuf[14]);
-    hedge->rawIMU.compass_z= get_int16(&dataBuf[16]);
+{
+    uint8_t* dataBuf = &buffer[5];
 
-    hedge->rawIMU.timestamp= get_uint32(&dataBuf[24]);
-    
-    hedge->rawIMU.updated= true;
+    process_imu_raw_datagram_main(hedge, buffer);
+
+    hedge->rawIMU.timestamp.timestamp32 = get_uint32(&dataBuf[24]);
+    hedge->rawIMU.realTime = false;
+
 }
 
-static void process_imu_fusion_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
-{uint8_t *dataBuf= &buffer[5];
-	
-    hedge->fusionIMU.x= get_int32(&dataBuf[0]);
-    hedge->fusionIMU.y= get_int16(&dataBuf[4]);
-    hedge->fusionIMU.z= get_int16(&dataBuf[8]);
-    
-    hedge->fusionIMU.qw= get_int16(&dataBuf[12]);
-    hedge->fusionIMU.qx= get_int16(&dataBuf[14]);
-    hedge->fusionIMU.qy= get_int16(&dataBuf[16]);
-    hedge->fusionIMU.qz= get_int16(&dataBuf[18]);
-    
-    hedge->fusionIMU.vx= get_int16(&dataBuf[20]);
-    hedge->fusionIMU.vy= get_int16(&dataBuf[22]);
-    hedge->fusionIMU.vz= get_int16(&dataBuf[24]);
-    
-    hedge->fusionIMU.ax= get_int16(&dataBuf[26]);
-    hedge->fusionIMU.ay= get_int16(&dataBuf[28]);
-    hedge->fusionIMU.az= get_int16(&dataBuf[30]);
+static void process_nt_imu_raw_datagram(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
 
-    hedge->fusionIMU.timestamp= get_uint32(&dataBuf[34]);
-    
-    hedge->fusionIMU.updated= true;
+    process_imu_raw_datagram_main(hedge, buffer);
+
+    memcpy(&hedge->rawIMU.timestamp, &dataBuf[24], 8);
+    hedge->rawIMU.realTime = true;
 }
 
-static void process_raw_distances_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
-{uint8_t *dataBuf= &buffer[5];
- uint8_t ofs, i;	
-	
-    hedge->rawDistances.address_hedge= dataBuf[0];
-    
-    ofs= 1;
-    for(i=0;i<4;i++)
+static void process_imu_fusion_datagram_main(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+
+    hedge->fusionIMU.x = get_int32(&dataBuf[0]);
+    hedge->fusionIMU.y = get_int32(&dataBuf[4]);
+    hedge->fusionIMU.z = get_int32(&dataBuf[8]);
+
+    hedge->fusionIMU.qw = get_int16(&dataBuf[12]);
+    hedge->fusionIMU.qx = get_int16(&dataBuf[14]);
+    hedge->fusionIMU.qy = get_int16(&dataBuf[16]);
+    hedge->fusionIMU.qz = get_int16(&dataBuf[18]);
+
+    hedge->fusionIMU.vx = get_int16(&dataBuf[20]);
+    hedge->fusionIMU.vy = get_int16(&dataBuf[22]);
+    hedge->fusionIMU.vz = get_int16(&dataBuf[24]);
+
+    hedge->fusionIMU.ax = get_int16(&dataBuf[26]);
+    hedge->fusionIMU.ay = get_int16(&dataBuf[28]);
+    hedge->fusionIMU.az = get_int16(&dataBuf[30]);
+
+    hedge->fusionIMU.updated = true;
+}
+
+static void process_imu_fusion_datagram(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+
+    process_imu_fusion_datagram_main(hedge, buffer);
+
+    hedge->fusionIMU.timestamp.timestamp32 = get_uint32(&dataBuf[34]);
+    hedge->fusionIMU.realTime = false;
+}
+
+static void process_nt_imu_fusion_datagram(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+
+    process_imu_fusion_datagram_main(hedge, buffer);
+
+    memcpy(&hedge->fusionIMU.timestamp, &dataBuf[34], 8);
+    hedge->fusionIMU.realTime = true;
+}
+
+
+static void process_raw_distances_datagram_main(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+    uint8_t ofs, i;
+
+    hedge->rawDistances.address_hedge = dataBuf[0];
+
+    ofs = 1;
+    for (i = 0; i < 4; i++)
     {
-	   hedge->rawDistances.distances[i].address_beacon= dataBuf[ofs+0];	
-	   hedge->rawDistances.distances[i].distance= get_uint32(&dataBuf[ofs+1]);
-	   ofs+= 6;
-	}
-    
-    hedge->rawDistances.updated= true;
+        hedge->rawDistances.distances[i].address_beacon = dataBuf[ofs + 0];
+        hedge->rawDistances.distances[i].distance = get_uint32(&dataBuf[ofs + 1]);
+        ofs += 6;
+    }
+
+    hedge->rawDistances.updated = true;
+}
+
+static void process_raw_distances_datagram(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+
+    process_raw_distances_datagram_main(hedge, buffer);
+
+    hedge->rawDistances.timestamp.timestamp32 = get_uint32(&dataBuf[25]);
+    hedge->rawDistances.realTime = false;
+
+    hedge->rawDistances.timeShift = get_uint16(&dataBuf[29]);
+}
+
+static void process_nt_raw_distances_datagram(struct MarvelmindHedge* hedge, uint8_t* buffer)
+{
+    uint8_t* dataBuf = &buffer[5];
+
+    process_raw_distances_datagram_main(hedge, buffer);
+
+    memcpy(&hedge->rawDistances.timestamp, &dataBuf[25], 8);
+    hedge->rawDistances.realTime = true;
+
+    hedge->rawDistances.timeShift = get_uint16(&dataBuf[33]);
 }
 
 static void process_telemetry_datagram(struct MarvelmindHedge * hedge, uint8_t *buffer)
@@ -690,7 +774,11 @@ Marvelmind_Thread_ (void* param)
 	                                    (dataId == IMU_FUSION_DATAGRAM_ID) ||
 	                                    (dataId == BEACON_RAW_DISTANCE_DATAGRAM_ID) ||
 	                                    (dataId == TELEMETRY_DATAGRAM_ID) ||
-	                                    (dataId == QUALITY_DATAGRAM_ID);
+	                                    (dataId == QUALITY_DATAGRAM_ID) ||
+                                        (dataId == NT_POSITION_DATAGRAM_HIGHRES_ID) ||
+                                        (dataId == NT_IMU_RAW_DATAGRAM_ID) ||
+                                        (dataId == NT_BEACON_RAW_DISTANCE_DATAGRAM_ID) ||
+                                        (dataId == NT_IMU_FUSION_DATAGRAM_ID);
                           }
                         else if (input_buffer[1] == 0x4a) 
                           {
@@ -727,6 +815,12 @@ Marvelmind_Thread_ (void* param)
                                 break;
                             case WAYPOINT_DATAGRAM_ID:
                                 goodByte= (receivedChar == 0x0c);
+                                break;
+                            case NT_POSITION_DATAGRAM_HIGHRES_ID:
+                            case NT_IMU_RAW_DATAGRAM_ID:
+                            case NT_BEACON_RAW_DISTANCE_DATAGRAM_ID:
+                            case NT_IMU_FUSION_DATAGRAM_ID:
+                                goodByte = true;
                                 break;
                         }
                         if (goodByte)
@@ -774,17 +868,29 @@ Marvelmind_Thread_ (void* param)
                                 // add to positionBuffer
                                 curPosition= process_position_highres_datagram(hedge, input_buffer);
                                 break;
+                            case NT_POSITION_DATAGRAM_HIGHRES_ID:
+                                curPosition = process_nt_position_highres_datagram(hedge, input_buffer);
+                                break;
                             case BEACONS_POSITIONS_DATAGRAM_HIGHRES_ID:
                                 process_beacons_positions_highres_datagram(hedge, input_buffer);
                                 break;
                             case IMU_RAW_DATAGRAM_ID:
-								process_imu_raw_datagram(hedge, input_buffer);
+				process_imu_raw_datagram(hedge, input_buffer);
                                 break;
+                            case NT_IMU_RAW_DATAGRAM_ID:
+                                process_nt_imu_raw_datagram(hedge, input_buffer);
+                                break; 
                             case IMU_FUSION_DATAGRAM_ID:
                                 process_imu_fusion_datagram(hedge, input_buffer);
                                 break;
+			    case NT_IMU_FUSION_DATAGRAM_ID:
+                                process_nt_imu_fusion_datagram(hedge, input_buffer);
+                                break;
                             case BEACON_RAW_DISTANCE_DATAGRAM_ID:
                                 process_raw_distances_datagram(hedge, input_buffer);
+                                break;
+                            case NT_BEACON_RAW_DISTANCE_DATAGRAM_ID:
+                                process_nt_raw_distances_datagram(hedge, input_buffer);
                                 break;
                             case TELEMETRY_DATAGRAM_ID:
                                 process_telemetry_datagram(hedge, input_buffer);
@@ -866,6 +972,17 @@ struct MarvelmindHedge * createMarvelmindHedge ()
 //////////////////////////////////////////////////////////////////////////////
 // Initialize and start work thread
 //////////////////////////////////////////////////////////////////////////////
+
+static int timezone_offset() {
+    time_t zero = 0;
+    struct tm* lt = localtime( &zero );
+    if (lt == NULL) return 0;
+    //return 0;
+    //int unaligned = lt->tm_sec + ( lt->tm_min +  ( lt->tm_hour * 6 ) ) * 6;
+    int unaligned = lt->tm_sec + ( lt->tm_min + ( lt->tm_hour * 60 ) ) * 60;
+    return lt->tm_mon ? unaligned - 24*60*60 : unaligned;
+}
+
 void startMarvelmindHedge (struct MarvelmindHedge * hedge)
 {uint8_t i;
 	
@@ -891,6 +1008,8 @@ void startMarvelmindHedge (struct MarvelmindHedge * hedge)
     
     hedge->telemetry.updated= false;
     hedge->quality.updated= false;
+
+    hedge->timeOffset= timezone_offset();
     
     hedge->waypoints.updated= false;
     hedge->waypoints.numItems= 0;
@@ -919,7 +1038,9 @@ static bool getPositionFromMarvelmindHedgeByAddress (struct MarvelmindHedge * he
     uint8_t i;
     int32_t avg_x=0, avg_y=0, avg_z=0;
     double avg_ang= 0.0;
-    uint32_t max_timestamp=0;
+    int64_t max_timestamp=0;
+    TimestampOpt max_timestamp_opt;
+    bool isRealTime = false;
     bool position_valid;
     bool highRes= false;
     uint8_t flags= 0;
@@ -960,8 +1081,20 @@ static bool getPositionFromMarvelmindHedgeByAddress (struct MarvelmindHedge * he
             if (hedge->positionBuffer[i].highResolution)
                 highRes= true;
             hedge->positionBuffer[i].processed= true;
-            if (hedge->positionBuffer[i].timestamp>max_timestamp)
-                max_timestamp=hedge->positionBuffer[i].timestamp;
+
+            int64_t curT;
+            if (hedge->positionBuffer[i].realTime) {
+                curT = hedge->positionBuffer[i].timestamp.timestamp64;
+                isRealTime = true;
+            }
+            else {
+                curT = hedge->positionBuffer[i].timestamp.timestamp32;
+            }
+
+            if (curT > max_timestamp) {
+                max_timestamp = curT;
+                max_timestamp_opt = hedge->positionBuffer[i].timestamp;
+            }
         }
         if (nFound != 0)
         {
@@ -990,7 +1123,8 @@ static bool getPositionFromMarvelmindHedgeByAddress (struct MarvelmindHedge * he
     position->y=avg_y;
     position->z=avg_z;
     position->angle= avg_ang;
-    position->timestamp=max_timestamp;
+    position->timestamp = max_timestamp_opt;
+    position->realTime = isRealTime;
     position->ready= position_valid;
     position->highResolution= highRes;
     position->flags= flags;
@@ -1002,6 +1136,26 @@ bool getPositionFromMarvelmindHedge (struct MarvelmindHedge * hedge,
 {
     return getPositionFromMarvelmindHedgeByAddress(hedge, position, 0);
 };
+
+static void printRealtimeStamp(struct MarvelmindHedge * hedge, char *s, TimestampOpt timestamp, bool realTime) {
+    if (!realTime) {
+        sprintf(s, "%d", timestamp.timestamp32);
+    } else {
+        time_t time_sec= (timestamp.timestamp64 / 1000);
+        if (time_sec>hedge->timeOffset)
+            time_sec= time_sec - hedge->timeOffset;
+        int time_ms= timestamp.timestamp64 % 1000;
+
+        struct tm ts;
+        struct tm *tsptr;
+        tsptr= localtime(&time_sec);
+        if (tsptr == NULL) return;
+        ts= *tsptr;
+
+        sprintf(s,"%04d_%02d_%02d__%02d%02d%02d_%03d",
+                (int) ts.tm_year+1900, (int) ts.tm_mon+1, (int) ts.tm_mday, (int) ts.tm_hour, (int) ts.tm_min, (int) ts.tm_sec, (int) time_ms);
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Print average position coordinates
@@ -1042,14 +1196,17 @@ void printPositionFromMarvelmindHedge (struct MarvelmindHedge * hedge,
             zm= ((double) position.z)/1000.0;
             if (position.ready)
             {
+                char times[128];
+                printRealtimeStamp(hedge, times, position.timestamp, position.realTime);
+
                 if (position.highResolution)
                 {
-                    printf ("Address: %d, X: %.3f, Y: %.3f, Z: %.3f at time T: %u\n",
-                            position.address, xm, ym, zm, position.timestamp);
+                    printf ("Address: %d, X: %.3f, Y: %.3f, Z: %.3f at time T: %s\n",
+                            position.address, xm, ym, zm, times);
                 } else
                 {
-                    printf ("Address: %d, X: %.2f, Y: %.2f, Z: %.2f at time T: %u\n",
-                            position.address, xm, ym, zm, position.timestamp);
+                    printf ("Address: %d, X: %.2f, Y: %.2f, Z: %.2f at time T: %s\n",
+                            position.address, xm, ym, zm, times);
                 }
             }
             hedge->haveNewValues_=false;
