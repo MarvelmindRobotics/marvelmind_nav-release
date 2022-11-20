@@ -1,3 +1,26 @@
+## marvelmind_nav (noetic) - 1.0.12-2
+
+The packages in the `marvelmind_nav` repository were released into the `noetic` distro by running `/usr/local/bin/bloom-release marvelmind_nav --rosdistro noetic` on `Sun, 20 Nov 2022 19:06:56 -0000`
+
+The `marvelmind_nav` package was released.
+
+Version of package(s) in repository `marvelmind_nav`:
+
+- upstream repository: https://bitbucket.org/marvelmind_robotics/ros_marvelmind_package
+- release repository: https://github.com/MarvelmindRobotics/marvelmind_nav-release.git
+- rosdistro version: `1.0.11-1`
+- old version: `1.0.12-1`
+- new version: `1.0.12-2`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `0.4.20`
+- rosdep version: `0.22.1`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## marvelmind_nav (noetic) - 1.0.12-1
 
 The packages in the `marvelmind_nav` repository were released into the `noetic` distro by running `/usr/local/bin/bloom-release marvelmind_nav --rosdistro noetic` on `Sun, 20 Nov 2022 19:01:09 -0000`
