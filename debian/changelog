@@ -1,0 +1,79 @@
+ros-noetic-marvelmind-nav (1.0.12-1buster) buster; urgency=high
+
+  * Realtime timestamps support
+  * Merged in master (pull request #1)
+    Make sure to always return a value when exiting hedgeReceivePrepare
+  * Make sure to always return a value when exiting hedgeReceivePrepare
+  * Contributors: Marcelino Almeida, smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Sat, 19 Nov 2022 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.11-1buster) buster; urgency=high
+
+  * waypoint msg added
+  * telemetry msg added
+  * quality msg added
+  * License header added
+  * License header added
+  * License header added
+  * License header added
+  * Contributors: smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Fri, 29 May 2020 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.10-1buster) buster; urgency=high
+
+  * upd
+  * Contributors: smoker77
+  * upd
+  * Contributors: smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 27 May 2020 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.9-1buster) buster; urgency=high
+
+  * Merge branch 'master' of https://smoker77@bitbucket.org/marvelmind_robotics/ros_marvelmind_package.git
+  * Added waypoints, quality, telemetry messages. Baudrate setup via command
+    line. Relative topic names for namespaces.
+  * Contributors: smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 27 May 2020 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.8-1buster) buster; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 14 Mar 2018 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.7-1buster) buster; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Mar 2018 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.6-1buster) buster; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Thu, 09 Feb 2017 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.5-1buster) buster; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Wed, 14 Sep 2016 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.4-1buster) buster; urgency=high
+
+
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Sep 2016 21:00:00 -0000
+
+ros-noetic-marvelmind-nav (1.0.3-1buster) buster; urgency=high
+
+  * initial commit
+  * Contributors: smoker77
+
+ -- smoker77 <smoker77@gmail.com>  Mon, 12 Sep 2016 21:00:00 -0000
+
+
